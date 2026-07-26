@@ -1,0 +1,27 @@
+1. Readme.md file contains the initial basic instructions
+
+2. We are going to use Azure CLI (commands mentioned in ai_103_cli_unit_1.sh) to perform operations in Azure instead of going to Azure portal
+
+3. We use infrastructure code because it makes everything repeatable and consistent between all of the users.
+
+4. We use Azure CLI codes to deploy bicep file which contains various parameters like foundry name, foundry project, etc..
+
+5. Inside bicep file, for creating foundry and hub, you need to use 'AI services' for kind to make sure you let microsoft know its for AI servcies, for managed identity you use 'System Assigned' (best practises), for sku, you use S0 tier which is the most basic tier for microsoft.
+
+6. Inside bicep file, after creating foundry, you need to create project, where you mention aifoundry in parent.
+
+7. next step to do inside bicep file is the deploy a model.
+
+8. inside bicep file, then we need endpoint and deployment name. If you dont create this in bicep file, you will have to do this manually in Azure portal.
+
+9. after creating bicep file, execute the CLI commands
+
+10. to check the deployment of model, go to foundry-> build -> deployments (you will see all deployed models)
+
+11. get the deployement outputs by running the 3rd CLI command and copy those outputs(deployment name and endpoint) to launch.json. In future we will use key vault.
+
+12. Till here, you wont bear any cost.
+
+13. Inside ai_103_python_unit_1.py, Here we will use openai SDK
+
+14. In this video, we only executed the 1st 3 commands of .sh file in Azure CLI
