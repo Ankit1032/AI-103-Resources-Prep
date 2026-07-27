@@ -1,0 +1,200 @@
+### Unit 3 Introduction – Why Agents Need Their Own Identity
+
+Unit 2 introduced Entra Agent ID. Unit 3 explains how to register, configure, and manage agent identities.
+
+• Review of Unit 2: You learned that Foundry Hubs and Projects organize agent resources. Now you need to secure those agents with proper identities.
+
+• Problem Without Agent Identity: Without its own ID, an agent acts as the user who wrote the code. You cannot audit agent actions separately from human actions.
+
+• What This Unit Covers: You will learn to register agents as Service Principals, assign permissions, configure Conditional Access, and manage the sponsor lifecycle.
+
+Exam Takeaway: Entra Agent ID is a Public Preview feature heavily tested on AI-103. Master identity concepts for governance questions.
+
+
+### Registering an Agent as an Identity
+
+Registering an agent creates a Service Principal in Microsoft Entra ID, giving the agent a unique client ID and credentials.
+
+• Registration Process: In Foundry Project settings, you select "Enable Entra Agent ID." Foundry creates a Service Principal automatically in your Entra tenant.
+
+• What Registration Produces: After registration, you receive a client ID (a public identifier) and must generate a secret or upload a certificate for authentication.
+
+• One Agent, One Identity: Each agent gets its own Service Principal. Two agents cannot share an identity. This enables per-agent auditing and permission control.
+
+Exam Takeaway: Registration creates a client ID and secret. You cannot skip registration – agents without Entra Agent ID have no auditable identity.
+
+
+### Client ID vs. Secret vs. Certificate
+
+A client ID is a public identifier. A secret or certificate is the private credential that proves the agent is who it claims to be.
+
+• Client ID Definition: The client ID is a long string (like `a1b2c3d4-...`) that identifies which agent is making a request. It is not a secret and can appear in logs.
+
+• Secret Definition: A secret is a password-like string (like `~8gH4...`) that the agent sends with each request to prove its identity. Secrets can expire.
+
+• Certificate Definition: A certificate is a file containing cryptographic keys. Certificates are more secure than secrets and cannot be accidentally copied as plain text.
+
+Exam Takeaway: The client ID identifies the agent. The secret or certificate authenticates the agent. Never share secrets or certificate private keys.
+
+
+### Authentication Flows for Agents
+
+An authentication flow is the sequence of steps an agent follows to prove its identity and receive an access token.
+
+• Client Credentials Flow: The agent sends its client ID and secret (or certificate) to Entra ID. Entra ID verifies and returns an access token. This is the primary flow for agents.
+
+• Token Definition: A token is a time-limited digital pass that proves the agent has authenticated. Tokens typically expire after 1 hour for security.
+
+• Using the Token: The agent includes the token in the `Authorization` header of every API request: `Authorization: Bearer`
+
+Exam Takeaway: Agents use the Client Credentials flow. They receive tokens and include them in API requests. Know this flow for coding questions.
+
+
+### DefaultAzureCredential for Agents
+
+`DefaultAzureCredential` is a code class that automatically tries multiple authentication methods in order until one succeeds.
+
+• Why DefaultAzureCredential Exists: Your agent code may run in different environments – local computer, test server, production. Each environment needs different credentials.
+
+• DefaultAzureCredential Order: The class tries: environment variables (first), then managed identity (if on Azure), then Visual Studio login, then Azure CLI login.
+
+• Agent Use Case: On your laptop, DefaultAzureCredential uses your Visual Studio login. In Azure, it uses managed identity. No code changes between environments.
+
+Exam Takeaway: `DefaultAzureCredential` is the recommended pattern for agent authentication. The exam tests which authentication method it tries first (environment variables).
+
+
+### Managed Identity for Agents
+
+Managed Identity is an Azure feature that automatically creates and rotates credentials for your agent without you storing any secrets.
+
+• Managed Identity Definition: When you enable managed identity on an Azure resource (like Agent Service), Azure creates a Service Principal and manages its credentials automatically.
+
+• No Secrets to Store: With managed identity, your agent code never sees a secret or certificate. Azure injects credentials directly into the running environment.
+
+• Enabling Managed Identity: In Foundry Agent Service settings, you toggle "Enable system-assigned managed identity." The agent can then authenticate without hardcoded keys.
+
+Exam Takeaway: Managed identity is the most secure authentication method because no secrets are stored in code, config files, or environment variables.
+
+
+### Agent Identity Blueprints – Permission Templates
+
+An Agent Identity Blueprint is a reusable template that defines which Azure resources (storage, databases, APIs) an agent can access.
+
+• Blueprint Structure: A Blueprint contains a list of role assignments. Example: "This agent gets Storage Blob Data Reader role on Container A and Cosmos DB Reader role on Database B."
+
+• Applying a Blueprint: After creating a Blueprint, you assign it to an agent's Service Principal. The agent immediately receives all permissions listed in the Blueprint.
+
+• Blueprint Versioning: You can update a Blueprint. All agents using that Blueprint automatically receive the updated permissions. No need to reconfigure each agent.
+
+Exam Takeaway: Blueprints are permission templates applied to agent identities. Update one Blueprint to update many agents.
+
+
+### Assigning Permissions to Agents
+
+Permissions are assigned to an agent by granting Azure roles to the agent's Service Principal, just like a human user.
+
+• Role-Based Access Control (RBAC): RBAC (Role-Based Access Control) is Azure's permission system. You assign roles like "Reader" or "Contributor" to identities.
+
+• Granting Role to Agent: In Azure portal, you go to a storage account, select "Access Control," add role assignment, and choose the agent's Service Principal as the assignee. This is manual way. Blueprint is the codified way.
+
+• Least Privilege Principle: Give the agent only the permissions it needs – no more. An agent that only reads customer names should not have delete permissions.
+
+Exam Takeaway: Agents receive permissions through RBAC role assignments. The exam expects you to know that agents use the same permission system as human users.
+
+
+### Conditional Access for Agent Actions
+
+Conditional Access policies add conditions – like network location or time of day – that must be true before an agent can act.
+
+• Policy Example – Network Location: "This agent can only access customer data when running from the corporate office IP address. Cloud deployments are blocked."
+
+• Policy Example – Time Window: "This agent can only process refund requests between 9 AM and 5 PM local time. Requests outside that window are blocked."
+
+• Policy Example – Risk Level: "If Entra ID detects unusual activity from this agent (like rapid deletion requests), block all actions until a human sponsor approves."
+
+Exam Takeaway: Conditional Access adds situational rules to permissions. Permissions say "what." Conditional Access says "when and where."
+
+
+### Access Packages for Time-Bound Permissions
+
+An Access Package is a collection of permissions that can be assigned to an agent for a specific duration, after which access is automatically revoked.
+
+• Access Package Definition: An Access Package groups multiple role assignments into one requestable bundle. Example: "Sensitive Data Access" includes read access to HR database and write access to logs.
+
+• Request and Approval Workflow: A developer requests the Access Package for an agent. A manager approves. The agent receives the permissions for 24 hours.
+
+• Automatic Expiration: After 24 hours, Azure automatically removes the Access Package from the agent. No manual cleanup needed. This prevents permission creep.
+
+Exam Takeaway: Access Packages provide temporary, approved, time-limited permissions. They are essential for agents handling sensitive data or high-stakes actions.
+
+
+### The Sponsor – Human Accountability
+
+A sponsor is a named human who is accountable for an agent's actions and must approve certain high-risk operations.
+
+• Sponsor Assignment: When you register an agent with Entra Agent ID, you must assign a sponsor from your organization. This cannot be empty.
+
+• Sponsor Responsibilities: The sponsor reviews weekly agent logs, approves Access Package requests, and is alerted if the agent triggers security violations.
+
+• Multiple Sponsors: An agent can have multiple sponsors. Typically, you assign a primary sponsor (for daily oversight) and a backup sponsor (for when primary is unavailable).
+
+Exam Takeaway: Every agent needs at least one human sponsor. The exam tests sponsor responsibilities – reviewing logs, approving access, receiving alerts.
+
+
+### Sponsor Lifecycle – When Sponsors Leave
+
+When a sponsor leaves the company, all agents assigned to that sponsor are automatically suspended until a new sponsor is assigned.
+
+• Orphaned Agent Prevention: If a sponsor departs, their agents have no accountable human. Foundry detects this and suspends the agents within 24 hours.
+
+• Suspension Behavior: Suspended agents reject all incoming requests. They return an error: "Agent suspended – no sponsor assigned." They do not process any actions.
+
+• Reassignment Process: A new sponsor must be assigned through Foundry management portal. After reassignment, the agent automatically resumes normal operation.
+
+Exam Takeaway: Sponsor departure causes agent suspension. The exam asks: "What happens to an agent when its sponsor leaves?" Answer: Suspended until reassigned.
+
+
+### Auditing Agent Actions
+
+Auditing records every action an agent takes – API calls, data access, permission changes – with the agent's identity, not the user's identity.
+
+• Audit Log Contents: Each audit entry includes: agent client ID, action performed (like "deleted record ID 12345"), timestamp, and source IP address.
+
+• Separate from User Logs: When a user invokes an agent, there are two log entries: user called agent, and agent called database. This separates user intent from agent action.
+
+• Querying Audit Logs: In Azure Monitor, you can filter by agent client ID to see everything a specific agent did. This helps investigate incidents.
+
+Exam Takeaway: Auditing shows exactly which agent performed which action. This is only possible because each agent has its own identity (Entra Agent ID).
+
+
+### Coding Pattern – Authenticating with Entra Agent ID
+
+Your agent code uses the `DefaultAzureCredential` class to authenticate with its Service Principal and obtain an access token.
+
+• Code Pattern – Local Development: On your laptop, `DefaultAzureCredential()` uses your Visual Studio or Azure CLI login. No agent identity needed during development.
+
+• Code Pattern – Production with Managed Identity: Deploy to Agent Service with managed identity enabled. `DefaultAzureCredential()` automatically uses the managed identity without extra code.
+
+• Code Pattern – Production with Secret: If managed identity is not available, set environment variables `AZURE_CLIENT_ID`, `AZURE_CLIENT_SECRET`, `AZURE_TENANT_ID`. `DefaultAzureCredential` reads them automatically.
+
+Exam Takeaway: The coding expectation for governance is secure authentication. Remember `DefaultAzureCredential()` and managed identity as the preferred patterns.
+
+
+### Unit 3 Summary – Entra Agent ID Mastery
+
+You have learned that Entra Agent ID gives each agent its own Service Principal, permissions, and human sponsor for accountability.
+
+• Five Key Concepts: Service Principal (the identity), Client Credentials Flow (authentication), Blueprints (permission templates), Conditional Access (situational rules), Sponsor (human accountable).
+
+• Authentication Priority Order: Managed identity (most secure) → Environment variables with secret → Hardcoded credentials (never use). The exam tests this priority.
+
+• Sponsor Lifecycle Critical: Agents suspend when sponsors leave. Must reassign to resume. This is a frequent exam scenario question.
+
+• Next Unit Preview: Unit 4 introduces Responsible AI – Content Safety filters, red teaming agents, and prompt injection defenses.
+
+Exam Takeaway: Entra Agent ID is 15% of the exam. Focus on Service Principals, authentication flows, sponsor lifecycle, and the difference between Blueprints, Conditional Access, and Access Packages.
+
+
+
+
+
