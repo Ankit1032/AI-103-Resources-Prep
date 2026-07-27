@@ -1,0 +1,28 @@
+### After creating Agents, to trace/monitor the Agent calls -> Go to Agents -> Traces. To see traces, you need to create and connect an App insights resource to enable tracing.
+
+
+### You can add tools, knowledge, memory., guardrails.
+
+
+### If you go to details tab, you get to see more details about your agent
+	a. You see entra agent identity, entra agent blueprint, endpoints, status, etc.
+	b. You also see an option to setup A2A
+	c. You can even preview your agent in a simple UI webapp
+
+
+### To publish your agent, go to publish --> Teams & Microsoft 365 copilot
+
+
+### Go to Azure portal -> search botservice -> create bot -> azure bot -> create.
+	you neeed this for publishing your agent
+
+
+### To make your agent access a storage account
+	- Create a storage account resource in Azure Portal
+	- Click on it and then go to -> access control (IAM)
+	- click on Add -> Add role assignment.
+	- Type on search bar "Storage Blob Data Contributor"
+	- Go to members --> copy the entra agent identity id from foundry -> go back to azure portal -> click on select members -> paste the entra agent identity
+	- click "review and assign"
+	- Now your agent has access to this storage.
+
