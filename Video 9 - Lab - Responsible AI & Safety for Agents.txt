@@ -1,0 +1,21 @@
+1. After creating agents, click on "Guardrails" -> "Create Guardrails"
+
+2. You will see alot of different types of Guardrails like Jailbreak, Prompt Injection, Content Harms, Protected materials, Sensitive Data Leakage, Task Drift. Use this to have a proper Responsible AI in-place for your agent.
+
+3. Jailbreak : Attempts to override or bypass system instructions so the model ignores safety rules or constraints
+
+4. Indirect Prompt Injection : Malicious instructions hidden in external content (e.g. tools, web pages, emails) that alter model behaviour
+	a. Spotlighting : It spotlights different parts of your prompt. As we know LLMs only pays attention in the beginning or end of the prompt. Spotlights helps to attend to all the parts of prompts, not only first and last.
+	
+5. Content Harm : Blocks, Hate, Sexual, Self-Harm and Violence. (You can do it for both user input and output). You can increase/decrease the severity. There is a custom blocklist feature to add custom words that you want to block.
+
+6. Protected Materials : Unauthorized reproduction or disclosure of copyrighted, licensed, or proprietary content for code and text.
+	Feature: Protected material for code, Protected material for text. So if you have a Github repo with code. Enabling this will make the agent not say/output anything about that github repo or anything that is marked proprietary.
+
+7. Sensitive Data leakage : Exposure of personal or confedential data such as names, addresses, credentials, or health information.
+	Feature : PII review can be blocked. You can choose from alot of information given in the dropbox which are all PII like name, address, etc.
+
+8. Task Drift : The agent deviates from its assigned task, instructions, or trusted data sources. 
+	It happens if you gave it a big vague prompt and the agent hallucinates or struggles to attend to all your prompt.
+	
+9. You can create guardrails on Agents or on the deployed model itself.
