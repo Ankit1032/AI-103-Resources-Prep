@@ -1,0 +1,202 @@
+### What Was Azure AI Studio?
+
+Azure AI Studio was Microsoft's previous platform for AI development, before Foundry replaced it.
+
+• Azure AI Studio Defined: Azure AI Studio was a cloud service for deploying models, building prompts, and testing AI applications before Foundry existed.
+
+• Limitations of AI Studio: AI Studio treated AI as single model calls. It lacked native support for agent memory, multi-agent orchestration, and agent-specific identity.
+
+• Why Microsoft Built Foundry: Agents need features that AI Studio did not provide – persistent state, tool calling frameworks, and per-agent security identities.
+
+Exam Takeaway: Foundry is the successor to Azure AI Studio. The exam references Foundry, not AI Studio.
+
+
+### Microsoft Foundry – The One-Stop Agent Platform
+
+Microsoft Foundry is a single Azure service that provides model deployment, agent hosting, security, and debugging tools.
+
+• Foundry Core Purpose: Foundry eliminates the need to stitch together separate Azure services. One platform handles everything an agent needs to run.
+
+• What Foundry Includes: Foundry includes model catalog (LLMs you can deploy), Agent Service (runtime environment), Foundry Trace (debugging), and Entra Agent ID (identity).
+
+• Foundry vs. Building from Scratch: Without Foundry, you would need to combine Azure OpenAI, App Service, Cosmos DB, and Monitor manually. Foundry packages these together.
+
+Exam Takeaway: Foundry is an integrated platform, not a collection of separate services. Know what it includes.
+
+
+### Foundry Hubs – The Top-Level Container
+
+A Foundry Hub is the highest-level container that holds all your agent projects, models, and security settings.
+
+• Hub Definition: A Hub is like a folder that contains everything related to your team's AI work – multiple projects, deployed models, and shared security policies.
+
+• Hub vs. Azure Subscription: One Azure subscription can have multiple Hubs. Each Hub can have its own access rules, cost tracking, and regional placement.
+
+• When to Create a Hub: Create one Hub per team or per business unit. Hubs isolate agents, models, and costs from other groups in the same company.
+
+Exam Takeaway: Hubs are the top-level organizational unit in Foundry. Understand Hub hierarchy before Projects.
+
+
+### Foundry Projects – The Agent Workspace
+
+A Foundry Project is a workspace inside a Hub where you build, test, and deploy a specific agent or group of related agents.
+
+• Project Definition: A Project contains everything for one agent solution – the agent code, system message, tool definitions, memory configuration, and trace logs.
+
+• Project vs. Hub Relationship: A Hub can contain many Projects. Each Project inherits security settings from its Hub but can have its own specific configuration.
+
+• Typical Project Structure: One Project might contain a customer support agent. Another Project in the same Hub might contain a separate inventory management agent.
+
+Exam Takeaway: Projects are where you do the actual work of building an agent. Hubs are the container above Projects.
+
+
+### Foundry Agent Service – The Runtime Environment
+
+Foundry Agent Service is the runtime environment where your deployed agent actually runs and responds to user requests.
+
+• Agent Service Definition: Agent Service is a fully managed hosting platform. You upload your agent code, and Agent Service runs it, scales it, and monitors its health.
+
+• Deployment vs. Development: You develop agents inside a Project. When ready, you deploy the agent to Agent Service. The deployed version serves live users.
+
+• Scaling Built In: Agent Service automatically adds more computing power when many users request your agent simultaneously. You do not manage servers.
+
+Exam Takeaway: Agent Service is where agents live after deployment. Development happens in Projects. Deployment sends agents to Agent Service.
+
+
+### Foundry Model Catalog – Deploying LLMs
+
+The Foundry Model Catalog is a list of pre-trained AI models you can deploy and use as the brain for your agents.
+
+• Model Catalog Definition: The Model Catalog shows all available models from Microsoft (Phi series), OpenAI (GPT-4o), and other providers in one place.
+
+• Deploying a Model: Deploying means reserving a copy of a model exclusively for your agent. You choose the model version and pay for the computing time.
+
+• Model vs. Agent Relationship: An agent uses a deployed model as its reasoning engine. One agent can use one model, or different agents can use different models.
+
+Exam Takeaway: You deploy models from the Model Catalog. Your agent then references that deployed model endpoint.
+
+
+### What Is an Endpoint?
+
+An endpoint is a unique web address (URL) where your deployed model or agent can be reached by your application code.
+
+• Endpoint Definition: When you deploy a model or agent, Foundry gives you a URL like `https://your-project.foundry.azure.com/agent`. That URL is the endpoint.
+
+• Why Endpoints Matter: Your application code sends requests to the endpoint URL. Without the endpoint, your code has no way to reach the deployed model or agent.
+
+• Endpoints Contain Keys: Each endpoint has an associated API key (a secret password) that proves your code is authorized to call that endpoint.
+
+Exam Takeaway: Endpoints are URLs. API keys are secrets. You need both to call a deployed model or agent from your code.
+
+
+### API Keys – Authenticating to Endpoints
+
+An API key is a secret string of characters that identifies your application and proves it has permission to call an endpoint.
+
+• API Key Definition: An API key is like a password for your code. You include it in every request to the endpoint. Without the correct key, the endpoint rejects the request.
+
+• Where API Keys Live: You generate API keys in Foundry Project settings. Store keys in environment variables or Azure Key Vault, never in your source code.
+
+• Key Rotation: Security best practice is to change (rotate) API keys regularly. Foundry lets you generate new keys and disable old keys without redeploying.
+
+Exam Takeaway: The exam tests secure API key management – environment variables, Key Vault, and rotation – not hardcoded keys.
+
+
+### Foundry Project Hierarchy Summary
+
+Foundry organizes resources in a clear hierarchy: Azure Subscription → Hub → Project → Deployment.
+
+• Level 1 – Azure Subscription: Your billing and account container. One subscription can contain multiple Foundry Hubs.
+
+• Level 2 – Foundry Hub: Contains Projects, shared models, and shared security policies. Isolates teams or business units.
+
+• Level 3 – Foundry Project: Contains agent code, tool definitions, memory settings, and trace logs. One Project per agent or agent group.
+
+• Level 4 – Agent Service Deployment: The running instance of your agent. Deployed from a Project. Has its own endpoint URL and API keys.
+
+Exam Takeaway: Memorize this four-level hierarchy. Exam questions ask "which level contains agent code?" Answer: Project.
+
+
+### Agent Identity Blueprints
+
+An Agent Identity Blueprint is a template that defines what permissions and access rules an agent should have when deployed.
+
+• Blueprint Definition: A Blueprint is a reusable configuration file that specifies which databases, APIs, and storage an agent can access.
+
+• Why Use Blueprints: Instead of configuring permissions for each agent individually, you create a Blueprint once and apply it to many agents of the same type.
+
+• Blueprint vs. Agent ID: The Agent ID is the unique identity. The Blueprint is the permission template applied to that identity.
+
+Exam Takeaway: Blueprints standardize agent permissions across many agents. The exam expects you to know Blueprints enable consistent access control.
+
+
+### Conditional Access for Agents
+
+Conditional Access is a security feature that checks conditions – like location or device health – before allowing an agent to act.
+
+• Conditional Access Definition: Before an agent executes an action, Conditional Access verifies requirements: "Is the request coming from the corporate network? Is it within business hours?"
+
+• Agent-Specific Conditions: You can require that an agent only runs between 9 AM and 5 PM. Or require that the agent only accesses sensitive data when the sponsor (human owner) is logged in.
+
+• Exam Scenario Example: "An agent attempts to delete a customer record at 3 AM. Conditional Access blocks the action because it is outside approved hours."
+
+Exam Takeaway: Conditional Access adds situation-based rules to agent permissions. Know the difference between permissions (what) and conditions (when/where).
+
+
+### Access Packages for Agents
+
+An Access Package is a collection of permissions that you can assign to an agent's identity, often with an expiration date.
+
+• Access Package Definition: Instead of assigning permissions one by one, you group them into a Package. Example: "Database Reader" package includes read access to three databases.
+
+• Time-Limited Access: Access Packages can expire. An agent might have "Sensitive Data Access" for only 24 hours to process a specific request, then lose that access automatically.
+
+• Package Assignment Workflow: A human sponsor requests an Access Package for an agent. An approver grants it. The agent receives those permissions until expiration.
+
+Exam Takeaway: Access Packages group permissions. Expiration dates ensure agents do not keep permissions longer than needed.
+
+
+### The Sponsor Lifecycle
+
+A sponsor is a human who is accountable for an agent's actions and must approve certain agent behaviors.
+
+• Sponsor Definition: Every agent with Entra Agent ID must have a named human sponsor. This person is responsible if the agent misbehaves or violates policies.
+
+• Sponsor Responsibilities: The sponsor reviews agent logs, approves Access Package requests, and is contacted if the agent triggers a security alert.
+
+• Lifecycle Management: When a sponsor leaves the company, agents assigned to that sponsor are suspended until a new sponsor is assigned. This prevents orphaned agents.
+
+Exam Takeaway: Every agent needs a human sponsor. Without a sponsor, the agent cannot be deployed in enterprise Foundry environments.
+
+
+### Coding Pattern – Retrieving Endpoints and Keys
+
+Your agent code must retrieve endpoint URLs and API keys from configuration, never hardcode them in source files.
+
+• Environment Variables Pattern: Store `FOUNDRY_ENDPOINT` and `FOUNDRY_API_KEY` as environment variables. Your code reads them with `os.getenv("FOUNDRY_ENDPOINT")`.
+
+• Azure Key Vault Pattern: For production, store secrets in Key Vault. Your code authenticates to Key Vault first, then retrieves the endpoint and key securely.
+
+• DefaultAzureCredential Pattern: Use `DefaultAzureCredential()` in your code. This automatically tries multiple authentication methods – environment variables, managed identity, Visual Studio – in order.
+
+Exam Takeaway: The exam tests secure credential handling – environment variables, Key Vault, and DefaultAzureCredential – never hardcoded values.
+
+
+### Unit 2 Summary – Foundry Governance Foundations
+
+You have learned that Microsoft Foundry organizes agents into Hubs and Projects, secures them with Entra Agent ID, and provides runtime via Agent Service.
+
+• Hierarchy to Memorize: Subscription → Hub → Project → Agent Service Deployment. Know what lives at each level for exam scenario questions.
+
+• Three Security Concepts: Agent Identity Blueprints (permission templates), Conditional Access (situation rules), and Access Packages (grouped permissions with expiration).
+
+• Coding Pattern for Governance: Always retrieve endpoints and API keys from configuration – environment variables, Key Vault, or DefaultAzureCredential – never hardcode.
+
+• Next Unit Preview: Unit 3 introduces Entra Agent ID in depth – how to register an agent as an identity, assign permissions, and implement the sponsor lifecycle.
+
+Exam Takeaway: Foundry Management & Governance is 15% of the exam. Master the Hub/Project hierarchy and secure credential patterns before moving on.
+
+
+
+
+
