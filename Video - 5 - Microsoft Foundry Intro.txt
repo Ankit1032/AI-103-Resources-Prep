@@ -1,0 +1,16 @@
+1. To deploy a LLM model using custom settings in Foundry UI (Models (Models Catalog):
+	a. Select Deployment Name
+	b. Select Deployment Type (Global Standrad, Data Zone Standard, etc..)
+	c. You get to change model version settings (You can go to previous or latest model versions) and you can also change the upgrade policy like (Upgrade once new default version becomes available, Once the current version expires, etc..)
+	d. You need to keep a "Tokens per minute rate limit"
+	e. Guardrails
+
+2. Once model is deployed, you will see the playground where you can add tools, instructions, knowledge, memory and guardrails.
+
+3. If you click on "call model" section in this playground, it will show you the code snippet required to call the model along with endpoint and API Key
+
+4. To authenticate the above code, you can use either Entra ID or Key Authentication.
+
+5. To requiest extra quota, go to "Details" in playground and click "Request Quota" -> You will get a form to fill to request it.
+
+6. You can even compare models in this playground (Models which are deployed). It will open 2 model chat UI side by side in the playground for you to test and compare. You can also compare all the models by go to home -> compare models which shows the leaderboard and eveyrthing for all models(No deployment required)
