@@ -1,0 +1,3 @@
+1. Phi-4-mini-instruct is a SLM. If you go to foundry,you click on it, you can read its description stating it is a SLM
+
+2. You can compare LLMs and SLMs in compre option in playground
