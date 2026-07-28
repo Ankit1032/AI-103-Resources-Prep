@@ -1,0 +1,17 @@
+1. Go to models and deploy a text embedding model (text-embedding-ada-002)
+
+2. Upload files (PDF) in the playground. When you click "upload files", a window pops up which shows the index name where the files will be converted to vectors and stored along with the file size limit.
+
+3. Now you are ready to use/chat in your playground.
+
+4. You can also add knowledge base. Click on knowledge base -> click on foundry IQ (Here you need to select an Azure AI search connection and a knowledge base to connect with your agent). You can click on "create a new resource" for Foundry IQif you dont have existing one. Azure AI Search and Foundry IQ is same.
+
+5. While uploading a file in knowledge base, you will also have to choose the embedding model.
+
+6. Now once yu go back to playground, connect to the knowledge base which you created.
+
+7. You need to make sure your agent has the right permission to access the Knowledge base/Azure AI Search/Foundry IQ. So go to Azure -> ResourceGroup -> Azure AI search resource -> Acces Control (IAM)  -> CHeck Access -> Select your foundry project. If yu see nothing, then no permission have been given.
+
+8. so in the Azure AI search resource page in Azure, click "Add" -> Search for "Index" (Search Index Data Reader) which grants read access to Azure cognitive search index data. After selecting this, click "next"
+
+9. In the members section, select managed identity -> click on "members" and select your foundry project -> review and assign
