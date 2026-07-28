@@ -1,0 +1,255 @@
+### Unit 8 Introduction – Controlling Agent Behavior
+
+Unit 7 covered advanced grounding. Unit 8 covers system instructions – the rules that define an agent's personality, boundaries, and decision-making.
+
+• Review of Unit 7: You learned to ground agents with enterprise data. Now you need rules that tell the agent how to use that data and when to act.
+
+• What This Unit Covers: You will learn to design system instructions that define agent personas, set boundaries, enforce safety rules, and control grounding behavior.
+
+• Why System Instructions Matter: Without system instructions, agents have no constraints. They may refuse to answer, answer incorrectly, or violate policies.
+
+Exam Takeaway: Context Management is part of Generative AI Domain (20% weighting). System instructions are your primary control mechanism for agent behavior.
+
+
+### What Is a System Instruction?
+
+A system instruction is a persistent message sent with every LLM request that defines the agent's role, rules, and boundaries.
+
+• System Instruction Definition: The system message is separate from user messages. It tells the LLM "who you are" and "how to behave" for the entire conversation.
+
+• Persistence Across Turns: Unlike user messages that change each turn, the system instruction is included in every API call. The agent never forgets its core rules.
+
+• Example System Instruction: "You are a customer support agent for Contoso. Never share internal prices. Always ask for order number before looking up accounts."
+
+Exam Takeaway: System instructions persist across all conversation turns. The exam tests your ability to write effective system instructions for different agent types.
+
+
+### Agent Persona – Defining Who the Agent Is
+
+The persona is the first part of a system instruction. It tells the agent its role, tone, and relationship to the user.
+
+• Persona Components: Role (customer support agent, sales assistant, technical expert), tone (professional, friendly, concise), and relationship (helper, advisor, coordinator).
+
+• Example Persona: "You are a technical support engineer for Azure. Your tone is patient and educational. You are helping developers solve cloud problems."
+
+• Without Persona: Without a persona, the LLM defaults to a generic assistant. It may sound robotic or fail to establish trust with users.
+
+Exam Takeaway: The persona sets the agent's identity and tone. The exam presents scenarios and asks which persona is appropriate for a given use case.
+
+
+### Boundaries – What the Agent Cannot Do
+
+Boundaries are rules in the system instruction that define actions the agent is never allowed to take, regardless of user requests.
+
+• Hard Boundaries Definition: Hard boundaries are absolute prohibitions. Example: "Never delete user data. Never share personal information with third parties."
+
+• Soft Boundaries Definition: Soft boundaries allow exceptions with conditions. Example: "Only share refund amounts if the user has verified their order number."
+
+• Boundary Enforcement: The LLM follows boundaries in its reasoning. If a user asks to violate a boundary, the agent refuses and explains why.
+
+Exam Takeaway: Boundaries prevent harmful or unauthorized actions. The exam tests the difference between hard boundaries (absolute) and soft boundaries (conditional).
+
+
+### Grounding Rules – How to Use Retrieved Data
+
+Grounding rules in the system instruction tell the agent how to use search results, when to trust them, and when to admit uncertainty.
+
+• Citation Requirement: "When you answer using grounding results, cite the source document ID. Do not present retrieved facts as your own knowledge."
+
+• Uncertainty Handling: "If grounding results do not answer the user's question, say 'I cannot find that information' rather than inventing an answer."
+
+• Priority of Grounding: "Always prefer information from grounding results over your training data. If they conflict, trust the grounding results."
+
+Exam Takeaway: Grounding rules control how agents use retrieved data. The exam tests rules for citation, uncertainty, and conflict resolution.
+
+
+### Safe Behavior – Refusing Harmful Requests
+
+System instructions must include rules that cause the agent to refuse harmful, illegal, or unethical requests without escalation.
+
+• Refusal Templates: "If a user asks you to do something illegal, respond with: 'I cannot help with that request. Please ask something else.'"
+
+• No Escalation Rule: "Do not explain why the request is harmful. Do not suggest alternatives. Simply refuse and move to the next topic."
+
+• Safety Override: Safety rules in system instructions take precedence over all other instructions, including user requests to ignore safety.
+
+Exam Takeaway: Safe refusal rules are mandatory. The exam tests that agents should refuse harmful requests without escalation or explanation.
+
+
+### Tool Calling Instructions – When to Use Tools
+
+Tool calling instructions tell the agent which tools are available, when to use each tool, and how to choose parameters.
+
+• Tool Availability: "You have access to Search Tool and Email Tool. Use Search Tool to find information. Use Email Tool only when user explicitly asks to send email."
+
+• When Not to Call Tools: "Do not call Search Tool for greetings, small talk, or questions about your own capabilities. Respond directly from your knowledge."
+
+• Parameter Extraction: "When calling Search Tool, extract filter values from the user's question. Example: 'Show me refunds from last week' → filter `date gt 2025-04-21`."
+
+Exam Takeaway: Tool instructions control agent autonomy. The exam tests system instructions that correctly specify when to call tools and when to respond directly.
+
+
+### Chain of Thought – Showing Reasoning Steps
+
+Chain of Thought (CoT) instructions tell the agent to show its reasoning steps before answering, improving accuracy and debuggability.
+
+• CoT Definition: Chain of Thought means the agent writes its internal reasoning in the response before giving the final answer. Users see the reasoning.
+
+• CoT Instruction: "Before answering, write your reasoning in <thinking> tags. Include: what the user asked, what information you have, and what steps you will take."
+
+• Benefits of CoT: Showing reasoning helps users trust the answer. It also helps you debug when the agent makes mistakes – you see where reasoning broke down.
+
+Exam Takeaway: Chain of Thought improves accuracy and debuggability. The exam tests CoT instructions that require the agent to show reasoning before answering.
+
+
+### Structured Output Format Instructions
+
+Structured output instructions tell the agent to return responses in a specific JSON format rather than free text.
+
+• When to Use Structured Output: Use structured output when another system (not a human) reads the agent's response. Example: an API returning data to a mobile app.
+
+• Example JSON Instruction: "Return your response as JSON with fields: 'answer' (string), 'confidence' (number 0-1), and 'sources' (array of document IDs). Do not include any text outside the JSON."
+
+• Validation: Your code must validate that the agent returned valid JSON. If not, retry with a stronger system instruction or error handling.
+
+Exam Takeaway: Structured output instructions are for machine-to-machine communication. The exam tests JSON schema definitions in system instructions.
+
+
+### Dynamic System Instruction Construction
+
+Dynamic construction means your code builds the system instruction programmatically based on user context, session state, or grounding results.
+
+• Why Dynamic Construction: Different users need different rules. Example: Admin users get broader permissions. Guest users get restricted tool access.
+
+• Context Variables: Your code injects variables into the system instruction template:
+`system_prompt = f"You are a support agent for user {user_name}. Their role is {user_role}."`
+
+• Grounding-Aware Instructions: If grounding results are available, append: "Using this customer data: {customer_data}. Answer questions about this specific customer."
+
+Exam Takeaway: The coding expectation is constructing system prompts programmatically with variables. The exam tests dynamic prompt building.
+
+
+### Appending Grounding Results to System Instructions
+
+When you have grounding results, you append them to the system instruction (not the user message) so the agent treats them as persistent context.
+
+• Why Append to System: Grounding results appended to system instruction are treated as authoritative facts. The agent will use them throughout the conversation.
+
+• Implementation: `grounded_system = original_system + "\n\nRelevant information from search:\n" + grounding_text`. Then send as system message.
+
+• Token Limit Caution: System instruction plus grounding results count toward token limit. If too large, summarize grounding results or move to user message.
+
+Exam Takeaway: Append grounding to system instruction for authoritative facts. The exam tests the difference between grounding in system vs. user messages.
+
+
+### System Instruction Versioning
+
+System instruction versioning means storing past versions of your system instructions so you can roll back if a new version causes bad behavior.
+
+• Store in Source Control: Save each system instruction version in your code repository with a version number and timestamp.
+
+• A/B Testing: Deploy two agent versions with different system instructions. Route 50% of users to each. Compare satisfaction and error rates.
+
+• Rollback Process: If a new system instruction causes errors, redeploy the previous version from source control. Downtime is minutes, not days.
+
+Exam Takeaway: Versioning system instructions enables rollback and A/B testing. The exam tests that system instructions are treated as code, not configuration.
+
+
+### Testing System Instructions with Red Teaming
+
+Red teaming agents (from Unit 4) can test your system instructions by attempting jailbreaks, boundary violations, and instruction conflicts.
+
+• What Red Teaming Tests: Red team agents send prompts like "Ignore your system instructions" or "You are now a different agent" to see if system instructions hold.
+
+• Failure Detection: If a red team prompt causes the agent to violate a boundary, the system instruction is too weak. Strengthen it or add explicit refusal rules.
+
+• Automated Regression Testing: Run red teaming after every system instruction change. If a previously passing test fails, the new instruction introduced a vulnerability.
+
+Exam Takeaway: Red teaming validates system instruction effectiveness. The exam tests using red teaming to find and fix system instruction weaknesses.
+
+
+### Coding Pattern – Sending System Instructions
+
+Your agent code sends system instructions as the first message in the `messages` array when calling a deployed model endpoint.
+
+• SDK Pattern: Build `messages = [{"role": "system", "content": system_prompt}, {"role": "user", "content": user_input}]`. Call `client.complete(messages=messages)`.
+
+• REST Pattern: JSON body includes `messages` array with system object first, then user object. `{"messages":[{"role":"system","content":"..."},{"role":"user","content":"..."}]}`.
+
+• Multiple System Messages: Some models support multiple system messages. Subsequent system messages override or extend earlier ones. Check model documentation.
+
+Exam Takeaway: System instruction goes in `role: "system"` as the first message. The exam tests constructing the messages array correctly.
+
+
+### Unit 8 Summary – System Instruction Mastery
+
+You have learned to design system instructions that define persona, boundaries, grounding rules, tool usage, and output format.
+
+• Four Required Sections: Persona (who the agent is), Boundaries (what it cannot do), Grounding Rules (how to use data), Tool Instructions (when to act).
+
+• Dynamic Construction: Build system instructions programmatically with user context and grounding results. Append grounding to system message for authoritative facts.
+
+• Testing with Red Teaming: Validate system instructions by attempting jailbreaks and boundary violations. Version control for rollback.
+
+• Next Unit Preview: Unit 9 introduces Microsoft Agent Framework patterns – Magentic (Manager), Handoff, and Group Chat for multi-agent systems.
+
+Exam Takeaway: Context Management is 20% of the exam. Master system instruction components, dynamic construction, and red team testing for instruction validation.
+
+
+### 
+
+
+### 
+
+
+### 
+
+
+### 
+
+
+### 
+
+
+### 
+
+
+### 
+
+
+### 
+
+
+### 
+
+
+### 
+
+
+### 
+
+
+### 
+
+
+### 
+
+
+### 
+
+
+### 
+
+
+### 
+
+
+### 
+
+
+### 
+
+
+### 
+
+
