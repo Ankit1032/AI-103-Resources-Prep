@@ -1,0 +1,301 @@
+### Unit 6 Introduction – What Is Grounding?
+
+Grounding means giving an agent factual information from your own data so it answers correctly, not just from its training data.
+
+• Review of Unit 5: You learned to choose models. Now you need to give those models your specific data so they answer accurately about your business.
+
+• Problem Without Grounding: Without grounding, an LLM only knows public training data. It cannot answer questions about your internal products, prices, or customers.
+
+• What This Unit Covers: You will learn Agentic RAG—where agents decide when to search for information, rather than always searching.
+
+Exam Takeaway: Grounding is part of the Generative AI domain (20% weighting). Agents must access your data to be useful in production.
+```
+
+
+### Static RAG vs. Agentic RAG – The Key Difference
+
+Static RAG always injects search results into every prompt. Agentic RAG lets the agent decide when and what to search for.
+
+• Static RAG Definition: With Static RAG, you search a database for every user question and inject the retrieved results into the prompt. The agent never decides whether to search or skip retrieval.
+
+• Agentic RAG Definition: With Agentic RAG, you give the agent access to a Search Tool. The agent decides:
+  - "Do I need to search?"
+  - "What should I search for?"
+
+• Why Agentic Is Better: Static RAG wastes tokens and increases latency when the answer is already obvious. Agentic RAG performs retrieval only when necessary, saving both tokens and response time.
+
+Exam Takeaway: Agentic RAG gives the agent autonomy over retrieval. Remember the difference:
+- **Static RAG = Always Search**
+- **Agentic RAG = Decide Whether to Search**
+
+
+### Search Tools – The Agent's Way to Retrieve Data
+
+A Search Tool is a tool definition that tells the agent it has the ability to query Azure AI Search or Bing for information.
+
+• Search Tool as a Capability: You configure a Search Tool in your agent's tool list. This tells the agent: "You can call a search service to find information."
+
+• Tool Parameters: The Search Tool accepts parameters like `query` (search terms) and `filter` (date ranges, categories). The agent chooses these values.
+
+• Agent Autonomy: When the agent decides it needs information, it calls the Search Tool with its chosen query. The tool returns results, and the agent continues.
+
+Exam Takeaway: Search Tools are just like any other tool. The agent decides when to call them. This is Agentic RAG.
+```
+
+
+### Azure AI Search – Vector Search for Similarity
+
+Azure AI Search is a search service that can find documents similar in meaning to a user's question, not just matching exact words.
+
+• Vector Search Definition: Vector search converts text into numbers (vectors). Documents with similar vectors have similar meanings, even if the words used are different.
+
+• Example of Vector Search: A user asks, "How do I get a refund?" A document titled "Return Policy and Procedures" can still be retrieved because it matches the meaning of the query, even though it does not contain the exact word "refund."
+
+• Hybrid Search: Azure AI Search supports both:
+  - **Keyword Search** (exact word matching)
+  - **Vector Search** (semantic meaning matching)
+
+  Combining both approaches (Hybrid Search) typically produces the best retrieval results.
+
+Exam Takeaway: Vector search finds documents based on **meaning**, not just exact words. The exam expects you to know when to use vector search versus keyword search, and that **Hybrid Search** often provides the best overall results.
+```
+
+
+### Embeddings – Converting Text to Vectors
+
+An embedding is a list of numbers (a vector) that represents the meaning of a piece of text, created by a special embedding model.
+
+• Embedding Model Definition: An embedding model (such as `text-embedding-3-small`) takes text as input and outputs a vector of numbers, typically 1,536 values long.
+
+• How Embeddings Enable Search: Your search index stores embedding vectors for every document. When a user asks a question, the query is also converted into an embedding. The search engine compares the query vector with document vectors and retrieves the documents whose embeddings are most similar.
+
+• Embedding Distance: Two pieces of text with similar meanings have embedding vectors that are mathematically close together. Unrelated text has vectors that are much farther apart.
+
+Exam Takeaway: Embeddings convert the meaning of text into numerical vectors. Vector search retrieves documents whose embeddings are closest to the user's query embedding.
+```
+
+
+### Constructing a Vector Search Query
+
+A vector search query includes the user's question converted to an embedding, plus filters to narrow results by category or date.
+
+• JSON Request Body Structure: Your code sends a JSON body containing:
+  - `vector` – the embedding vector (list of numbers representing the user's query)
+  - `fields` – specifies which document fields to return
+  - `filter` – optional conditions to narrow results (for example, `category eq 'returns'`)
+
+• Generating the Embedding: Before performing the search, your application calls an embedding model to convert the user's question into a vector of numbers.
+
+• Sending the Query: Use the Azure AI Search SDK or send a REST POST request to:
+
+`https://<search-service>.search.windows.net/indexes/<index-name>/docs/search`
+
+with the JSON request body.
+
+Exam Takeaway: The exam tests whether you understand the structure of a vector search request. Remember that the request contains the **embedding vector**, optional **filters**, and the **fields** to retrieve.
+```
+
+
+### Coding Pattern – Sending a Vector Search Query
+
+Your agent code sends a vector search query to Azure AI Search using either the SDK or direct REST with a JSON request body.
+
+• SDK Pattern: Use `from azure.search.documents import SearchClient`. Call
+
+`client.search(search_text=None, vector_queries=[vector_query])` -> Search text for exact match and vector queries for vector match (Hybrid)
+
+with the embedding array.
+
+• REST Pattern: Send a POST request to
+
+`https://search.windows.net/indexes/customer-support/docs/search?api-version=2024-07-01`
+
+The request body includes a `vectorQueries` array containing the embedding.
+
+• Response Handling: The search service returns a JSON response with a `value` array containing the matched documents. Each document includes fields such as `content` and `score` (relevance score from 0 to 1).
+
+Exam Takeaway: The coding expectation is constructing vector search queries with embeddings and extracting results from JSON responses.
+```
+
+
+### Parsing Search Results from JSON
+
+After Azure AI Search returns JSON results, your code extracts the relevant text fields and passes them to the LLM as grounding context.
+
+• Result Structure: The JSON response contains a `value` array. Each object in `value` has:
+  - `content` field (the document text)
+  - `@search.score` (relevance score from 0–1)
+
+• Appending to Prompt: Add the retrieved context to the user prompt:
+
+"Based on this information: [context]. Answer the user's question: [user question]."
+
+Exam Takeaway: Parsing JSON search results and appending the retrieved context to prompts is a key coding competency for grounding questions.
+```
+
+
+### Bing Search – Web Grounding for Public Information
+
+Bing Search is a tool that allows your agent to search the public internet for up-to-date information not in its training data.
+
+• When to Use Bing: Use Bing when your agent needs current news, public product information, or facts about events after April 2026 (the model's training cutoff).
+
+• Bing Search as a Tool: Configure a Bing Search Tool with an API key from Azure AI Search service. The agent calls it like any other tool.
+
+• Rate Limits and Costs: Bing Search has rate limits (calls per second) and costs per query. Monitor usage for production agents.
+
+Exam Takeaway: Bing grounds agents with public web data. The exam tests when to use Bing (public information) vs. Azure AI Search (internal data).
+```
+
+
+### Agentic Retrieval – The Agent Decides to Search
+
+In Agentic Retrieval, the agent's system message instructs it to decide whether to search based on the user's question.
+
+• Example System Message Instruction:
+  "You have a Search Tool. Only use it if the user asks about products, prices, or policies. If the user greets you or asks about your capabilities, respond directly without searching."
+
+• Agent Reasoning:
+  The agent reads the user's question and determines:
+  - "This question requires my training knowledge only."
+  - OR "This question requires up-to-date information from the search index."
+
+• Benefits of Agentic Retrieval:
+  - Reduces token usage (no unnecessary search results)
+  - Faster responses (skip search when not needed)
+  - Lower costs
+
+Exam Takeaway: Agentic Retrieval requires the agent to reason about whether to search. The system message controls this behavior.
+```
+
+
+### Dynamic Filtering – Agent Chooses Search Filters
+
+With dynamic filtering, the agent can choose filter parameters like date ranges, categories, or product IDs when calling the Search Tool.
+
+• Filter Parameters Example:
+  The agent can call the Search Tool with:
+  `filter = "category eq 'Billing' AND date gt 2025-01-01"`
+  
+  The tool returns only billing documents from 2025.
+
+• How Agent Chooses Filters:
+  The system message describes available filter fields. The agent extracts values from the user's question.
+
+  Example:
+  "Show me refunds from last week"
+  → Filter on refund category and date.
+
+• Implementation:
+  The tool definition includes `filter` as a parameter. The agent provides the filter string. Your tool code passes it directly to Azure AI Search.
+
+Exam Takeaway: Dynamic filtering lets the agent narrow search results. The exam expects you to understand how agents construct filter strings from user questions.
+```
+
+
+### Grounding with Microsoft Fabric (OneLake)
+
+Microsoft Fabric (OneLake) is a data lake that stores your entire enterprise data, allowing agents to query across all business systems.
+
+• OneLake Definition:
+  OneLake is a single, unified data lake that brings together data from databases, files, and applications across your company.
+
+• Agent Connection:
+  You configure an Azure AI Search index that points to OneLake. The agent searches this index, which queries live data from Fabric.
+
+• Use Case Examples:
+  An agent can answer:
+  "What were our sales in Europe last quarter?"
+  by querying OneLake sales data without moving or copying the data.
+
+Exam Takeaway: Fabric (OneLake) provides enterprise-wide grounding. The exam tests that Fabric is a data source, not a separate search service.
+```
+
+
+### Grounding with Cosmos DB Vector Store
+
+Azure Cosmos DB can act as a vector store, storing embeddings alongside your operational data for real-time agent grounding.
+
+• Cosmos DB as Vector Store:
+  Cosmos DB stores documents with embedded vector fields. You can search for similar vectors using the Vector Search feature.
+
+• When to Use Cosmos DB:
+  Use Cosmos DB when your grounding data must be consistent with operational data—such as a product catalog, user profiles, or order history.
+
+• Query Pattern:
+  Your agent calls a tool that queries Cosmos DB with an embedding vector. The tool returns matching documents with their original JSON structures.
+
+Exam Takeaway: Cosmos DB is both an operational database and a vector store. The exam tests when to choose Cosmos DB vs. Azure AI Search for grounding.
+```
+
+
+### Appending Grounding Results to System Prompts
+
+After retrieving grounding results, your agent code must append them to the system message or user prompt before sending them to the LLM.
+
+• Programmatic Prompt Construction:
+  Your code builds the prompt dynamically:
+
+  `grounding_context = "\n".join(search_results)`
+
+  `full_prompt = grounding_context + original_user_question`
+
+• Placement Matters:
+  Place grounding results before the user's question. The LLM processes the grounding context first, then answers based on that information.
+
+• Token Limit Awareness:
+  Grounding results may be large. Truncate or summarize them to fit within the model's token limit (e.g., 128,000 tokens for GPT-4o).
+
+Exam Takeaway: The coding expectation is constructing prompts programmatically with appended grounding results. Know how to manage token limits.
+```
+
+
+### Coding Pattern – Complete Grounding Flow
+
+A complete grounding flow has five steps: receive user question, generate embedding, search vector store, parse results, append to prompt, call LLM.
+
+• Step 1 – Embedding:
+  Call embedding model API to convert the user question to a vector.
+  Store it in the `user_embedding` variable.
+
+• Step 2 – Search:
+  Call Azure AI Search with `vectorQueries` containing `user_embedding`.
+  Parse the JSON response into a `grounding_texts` array.
+
+• Step 3 – Construct Prompt:
+  Build the prompt:
+
+  `grounded_prompt = f"Context:\n{grounding_texts}\n\nQuestion:\n{user_question}"`
+
+• Step 4 – LLM Call:
+  Send `grounded_prompt` to the deployed model endpoint.
+  Return the response to the user.
+
+Exam Takeaway: The exam tests the complete grounding flow:
+
+**Embedding → Search → Parse → Append → LLM**
+
+Know this order.
+```
+
+
+### Unit 6 Summary – Agentic Grounding
+
+You have learned that Agentic RAG gives agents autonomy to decide when to search, using vector search, embedding models, and dynamic filtering.
+
+• Static vs. Agentic RAG:
+  Static always injects search results. Agentic lets the agent decide. The exam tests this distinction.
+
+• Core Technologies:
+  Azure AI Search (vector search), embedding models (text to vectors), Cosmos DB (operational vector store), Fabric (enterprise data lake).
+
+• Coding Skills:
+  Generate embeddings, construct JSON search requests, parse search results, and append grounding to prompts programmatically.
+
+• Next Unit Preview:
+  Unit 7 introduces advanced grounding with Fabric and Cosmos DB vector stores—deeper integration with enterprise data.
+
+Exam Takeaway: Grounding is 20% of the exam. Master Agentic RAG (agent decides to search), vector search JSON construction, and parsing grounding results.
+```
+
+
