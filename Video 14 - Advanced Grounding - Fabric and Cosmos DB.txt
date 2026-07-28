@@ -1,0 +1,350 @@
+### Unit 7 Introduction – Enterprise Grounding Sources
+
+Unit 6 covered Azure AI Search. Unit 7 covers advanced grounding with Microsoft Fabric (OneLake) and Cosmos DB vector stores.
+
+• Review of Unit 6:
+  You learned to use Azure AI Search and Bing for grounding. Now you need to ground agents with enterprise-wide data lakes and operational databases.
+
+• What This Unit Covers:
+  You will learn Microsoft Fabric (OneLake) for querying enterprise data, and Cosmos DB for real-time operational grounding.
+
+• Why Enterprise Grounding Matters:
+  Large companies have data spread across hundreds of systems. Agents need unified access without copying data.
+
+Exam Takeaway: Advanced grounding with Fabric and Cosmos DB is part of the Generative AI domain (20% weighting). These are enterprise-scale grounding solutions.
+```
+
+
+### How Agents Query OneLake
+
+Agents query OneLake by sending SQL-like requests to an Azure AI Search index that is connected to Microsoft Fabric data.
+
+• OneLake Connection:
+  You create an Azure AI Search index that points to OneLake tables. The index does not copy data; it reads from Fabric live.
+
+• Query Flow:
+  Agent calls Search Tool
+  → Search index translates the query to Fabric SQL
+  → Fabric returns results
+  → Search index returns results to the agent
+
+• No Data Movement:
+  Because the search index reads from OneLake live, your grounding data is always current. No sync jobs or data copies are needed.
+
+Exam Takeaway: OneLake provides live, current data without copying. The exam tests that the search index connects to Fabric, not that Fabric itself is a search engine.
+```
+
+
+### OneLake Use Cases for Agents
+
+OneLake is ideal for agents that need to query across multiple business systems like sales, inventory, and customer support.
+
+• Cross-System Query Example:
+  "Show me orders from customers who opened support tickets last week."
+  OneLake joins sales and support data in one query.
+
+• Real-Time Reporting:
+  "What are our current inventory levels for all warehouses?"
+  OneLake queries live data from operational systems without delays.
+
+• Historical Analysis:
+  "Compare this quarter's sales to last quarter."
+  OneLake stores years of historical data without performance degradation.
+
+Exam Takeaway: OneLake excels at cross-system queries and historical analysis. The exam presents scenarios and asks when to use Fabric vs. other sources.
+```
+
+
+### Fabric Security – Access Control for Agents
+
+Fabric integrates with Entra Agent ID, allowing you to grant agents access to specific tables or rows without granting access to all data.
+
+• Row-Level Security:
+  You can define rules like:
+  "Agent can only see orders for region = Europe."
+  The agent's Entra Agent ID determines which rows are visible.
+
+• Column-Level Security:
+  You can hide sensitive columns (like customer payment details) from certain agents while allowing others to see them.
+
+• Permission Inheritance:
+  An agent's Fabric permissions are managed through Entra Agent ID, the same identity system you learned in Unit 3.
+
+Exam Takeaway: Fabric security uses Entra Agent ID. The exam tests row-level and column-level security for agent data access.
+```
+
+
+### Cosmos DB as a Vector Store
+
+Azure Cosmos DB can store vectors (embeddings) alongside your operational data, allowing agents to search for similar items in real time.
+
+• Cosmos DB Vector Search Feature:
+  Cosmos DB includes native vector indexing. You store an embedding vector in each document as a field, then search for similar vectors.
+
+• Operational Consistency:
+  Unlike separate search indexes, Cosmos DB keeps vectors and operational data together. When you update a product price, its vector updates automatically.
+
+• Use Case Example:
+  Product catalog agent. User asks, "Find laptops similar to this one."
+  The agent generates an embedding of the product description and searches Cosmos DB for similar embeddings.
+
+Exam Takeaway: Cosmos DB keeps vectors with operational data. Use it when grounding data changes frequently and consistency matters.
+```
+
+
+### Cosmos DB vs. Azure AI Search for Grounding
+
+Choose Cosmos DB for operational data that changes frequently. Choose Azure AI Search for static document collections.
+
+• Cosmos DB Strengths:
+  - Real-time updates (millisecond latency)
+  - Transactional consistency
+  - Vector search plus SQL queries in one database
+
+• Azure AI Search Strengths:
+  - Advanced relevance tuning (learning to rank)
+  - Hybrid search (vector + keywords)
+  - Larger document sizes (up to 16 MB per document)
+
+• Decision Rule:
+  If your data changes more than 10 times per day or requires transactions, use Cosmos DB. Otherwise, use Azure AI Search.
+
+Exam Takeaway: The exam tests your ability to choose between Cosmos DB (operational, real-time) and Azure AI Search (static, advanced search).
+```
+
+
+### Coding Pattern – Cosmos DB Vector Search
+
+Your agent code queries Cosmos DB for vector search using the Azure Cosmos DB SDK with a vector similarity search query.
+
+• SDK Pattern:
+  Use:
+
+  `from azure.cosmos import CosmosClient`
+
+  Query with:
+
+  ```sql
+  SELECT TOP 10
+      c.id,
+      c.product_name,
+      c.description
+  FROM c
+  ORDER BY VectorDistance(c.embedding, @embedding)
+  ```
+
+• Parameter Definition:
+  The query uses the `@embedding` parameter containing your user's question embedding vector as an array of numbers.
+
+• Response Handling:
+  Cosmos DB returns JSON documents with:
+  - `product_name`
+  - `description`
+  - `VectorDistanceScore` (relevance score from 0–1)
+
+  Extract the results and pass them to the LLM.
+
+Exam Takeaway: Cosmos DB vector search uses the `VectorDistance` function in SQL. The exam tests your ability to construct these queries.
+```
+
+
+### Managing Connection Strings for Cosmos DB
+
+Cosmos DB uses connection strings (containing account endpoint and secret key) for authentication, stored securely in environment variables.
+
+• Connection String Format:
+  ```
+  AccountEndpoint=https://your-account.documents.azure.com;
+  AccountKey=your-secret-key
+  ```
+
+  The key is sensitive and must be stored securely.
+
+• Secure Storage Pattern:
+  Store the connection string in **Azure Key Vault**. Your agent retrieves it at startup using `DefaultAzureCredential()` to authenticate to Key Vault.
+
+• Managed Identity for Cosmos DB:
+  Enable **Managed Identity** on your Agent Service.
+
+  Grant that managed identity the **"Cosmos DB Built-in Data Contributor"** role.
+
+  With managed identity, **no connection string is needed**.
+
+Exam Takeaway: Prefer **Managed Identity** for Cosmos DB. If that isn't possible, store connection strings in **Azure Key Vault**. **Never hardcode credentials**.
+
+
+### Hybrid Search – Combining Vector and Keyword
+
+Hybrid search combines **vector search (meaning)** with **keyword search (exact words)** to give the best grounding results.
+
+• Why Hybrid Is Better:
+  Vector search finds **"laptop charger"** when the user says **"power cord for computer."**
+
+  Keyword search finds exact part numbers like **"model XF-1000."**
+
+• Azure AI Search Hybrid:
+  In the query JSON, set:
+  - `search` (keyword terms)
+  - `vectorQueries` (embedding vector)
+
+  Azure AI Search combines the scores using **Reciprocal Rank Fusion (RRF)**.
+
+• Cosmos DB Hybrid:
+  Use:
+  ```sql
+  WHERE CONTAINS(c.description, @keyword)
+     OR VectorDistance(c.embedding, @embedding) < 0.8
+  ```
+  Combine keyword and vector conditions with **OR**.
+
+Exam Takeaway: Hybrid search usually provides the **best accuracy**. Know when to use:
+- **Hybrid Search** → Most production scenarios (semantic + exact match)
+- **Pure Vector Search** → Semantic meaning only
+- **Pure Keyword Search** → Exact word/part-number matching only
+
+
+### Grounding Cost Optimization in Enterprise
+
+Enterprise grounding can cost thousands per month. Optimize by caching results, filtering aggressively, and using smaller embedding models.
+
+• Cache Repeated Queries:
+  Store grounding results for common questions in **Azure Redis**.
+
+  If the same question is asked again, return the cached results instead of performing another search.
+
+• Aggressive Filtering:
+  Before running a full vector search, apply inexpensive keyword filters to reduce the candidate set.
+
+  Example:
+  - First filter by **product category**
+  - Then perform vector search on the remaining **1,000 documents**
+
+• Smaller Embeddings:
+  Use **`text-embedding-3-small`** (1,536 dimensions) instead of **`text-embedding-3-large`** (3,072 dimensions).
+
+  This provides **about half the cost** while maintaining similar accuracy for many use cases.
+
+Exam Takeaway: Cost optimization is an important exam topic. Know these three strategies:
+- **Caching** → Avoid repeated searches.
+- **Pre-filtering** → Reduce the number of documents searched.
+- **Smaller Embedding Models** → Lower embedding cost with comparable performance.
+
+
+### Index Selection Strategy for Agents
+
+An agent may need multiple search indexes—for example:
+- Product Catalog
+- Customer Support Articles
+- Internal Policies
+
+The agent chooses the appropriate index based on the user's question.
+
+• Index Selection by Agent:
+  Configure the Search Tool to accept an **`index_name`** parameter.
+
+  The agent decides which index to query before calling Azure AI Search.
+
+• Example Agent Reasoning:
+  - User asks: **"What is the refund policy?"**
+    → Search the **`support-articles`** index.
+
+  - User asks: **"What are the specifications of the Dell XPS 15?"**
+    → Search the **`product-catalog`** index.
+
+• Implementation:
+  Your application maintains a mapping of index names to their corresponding Azure AI Search endpoints and API keys.
+
+  Example:
+  ```python
+  search_indexes = {
+      "product-catalog": {
+          "endpoint": "...",
+          "key": "..."
+      },
+      "support-articles": {
+          "endpoint": "...",
+          "key": "..."
+      },
+      "internal-policies": {
+          "endpoint": "...",
+          "key": "..."
+      }
+  }
+  ```
+
+  The agent selects the appropriate **`index_name`**, and your tool uses that configuration to query the correct search index.
+
+Exam Takeaway:
+- A single agent can work with **multiple Azure AI Search indexes**.
+- The agent **reasons about which index** is most relevant based on the user's intent.
+- This is a common Agentic RAG pattern where the model decides **which knowledge source to search**, not just **whether to search**.
+
+
+### Real-Time Grounding with Change Data Capture (CDC)
+
+Change Data Capture (CDC) automatically updates your search index when source data changes, keeping grounding current within seconds.
+
+• CDC Definition:
+  CDC monitors your source database (such as **Cosmos DB** or **SQL Server**) for data changes.
+
+  Whenever a record is inserted, updated, or deleted, CDC detects the change and pushes the update to your search index so the latest data is available for grounding.
+
+• Fabric CDC:
+  **Microsoft Fabric (OneLake)** automatically reflects changes from connected source systems.
+
+  For Fabric-connected search indexes, **no separate CDC configuration is required** because the data remains synchronized automatically.
+
+• Cosmos DB CDC:
+  Use **Azure Functions** together with the **Cosmos DB Change Feed**.
+
+  Workflow:
+  1. A document changes in Cosmos DB.
+  2. The Change Feed detects the update.
+  3. Azure Function is triggered.
+  4. The function updates the corresponding Azure AI Search index.
+
+Exam Takeaway:
+- **CDC keeps grounding data fresh** by automatically synchronizing changes.
+- **Fabric/OneLake** provides automatic synchronization for connected data.
+- **Cosmos DB** requires explicit CDC implementation using the **Change Feed** and **Azure Functions** to keep the search index up to date.
+
+
+### Multilingual Grounding
+
+Multilingual grounding allows agents to search for documents regardless of the language used in user questions and source documents.
+
+• Cross-Lingual Embeddings: Use embedding models like `text-embedding-3-large` that support 100+ languages. The embedding for "refund" in English is close to "remboursement" in French.
+
+• Indexing Strategy: Store original document text and its embedding in one index. The same embedding model generates vectors for both document and user query.
+
+• Agent Experience: User asks in Spanish. Agent generates Spanish embedding. Search returns English documents with similar meaning. Agent answers in Spanish using English source content.
+
+Exam Takeaway: Multilingual grounding uses embedding models that map different languages to similar vectors. The exam tests cross-lingual retrieval scenarios.
+
+
+### Monitoring Grounding Quality
+
+Grounding quality metrics measure whether the agent retrieved relevant documents and used them correctly in responses.
+
+• Retrieval Precision: What percentage of retrieved documents are relevant to the user's question? Track by having humans rate a sample of grounding results.
+
+• Grounding Faithfulness: Does the agent's answer stay within retrieved documents, or does it hallucinate extra information? Use LLM-as-judge to evaluate.
+
+• Foundry Trace Integration: Foundry Trace records each grounding step – the query embedding, search results, and which documents the agent cited. Review traces to debug grounding failures.
+
+Exam Takeaway: The exam tests grounding quality metrics: precision (relevance) and faithfulness (no hallucination). Use Foundry Trace to debug.
+
+
+### Unit 7 Summary – Advanced Grounding
+
+You have learned to ground agents with Fabric (enterprise data lake) and Cosmos DB (operational vector store), with security and quality monitoring.
+
+• Fabric (OneLake): Unified enterprise data lake. Live queries across all business systems. Security via Entra Agent ID with row/column-level controls.
+
+• Cosmos DB: Operational database with vector search. Best for frequently changing data. Use `VectorDistance()` function in SQL queries.
+
+• Quality Metrics: Retrieval precision (relevance) and grounding faithfulness (no hallucinations). Foundry Trace records all grounding steps.
+
+• Next Unit Preview: Unit 8 introduces Context Management – designing system instructions that define agent personas, boundaries, and grounding rules.
+
+Exam Takeaway: Advanced grounding is 20% of the exam. Master Fabric vs. Cosmos DB selection, connection string security, hybrid search, and quality monitoring.
