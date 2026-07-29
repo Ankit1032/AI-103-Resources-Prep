@@ -1,0 +1,34 @@
+1. To create Agent workflows -> go to Agents --> Workflows --> create workflow --> blank workflow
+
+2. Here the worklfow would be 
+	a. start_agent : One agent will label if the user query is simple or complex.
+	b. agent_simple : if the user query is labbeled simple, start_agent will send to this agent_simple which is using GPT-5-nano model
+	c. agent_complex : if the user query is labelled complex, start_agent will send to this agent_complex which is using GPT-5 model. 
+	
+NOTE: You need to create these agents before creating the workflows.
+	
+3. Configure start_agent:
+	a. Input Text : System.LastMessage.Text
+	b. Save agent output message as : Click "Create variable" and it automatically assigns a name to the variable (Local.Var8636)
+	c. nextNode: Here select "if/else" 
+	
+4. Configure IF condition:
+	a. For TRUE condition: MessageText(Local.Var8636) = "Simple"
+	b. Click on the + sign to add "deliver message" (For debug purpose) and type "Simple was chosen"
+	c. then + sign --> END
+
+5. Configure ELSE condition
+	a. Click on the + sign to add "deliver message" (For debug purpose) and type "Complex was chosen"
+	b. then + sign --> END
+	
+6. Click save and then click preview [You can test if the agent and the workflow is working by writing a user query]
+
+7. Once the workflow seems to work, replace the deliver message node with respective Simple/Complex agent
+
+8. to publish in microsoft teams and microsoft 365, click publish, create a botservice in Azure portal and copy that ID to foundry publish popup
+
+9. Once published, it will open the UI in copilot and here you can talk to the agent
+
+10. To see the code/YAML for endpoints, go to your workflow --> click YAML/Code on top right. Code section contains the endpoint.
+		
+	
