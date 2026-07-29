@@ -1,0 +1,277 @@
+### Unit 9 Introduction – From Single Agent to Multiple Agents
+
+Unit 8 covered system instructions for single agents. Unit 9 introduces multi-agent systems where multiple specialized agents work together.
+
+• Review of Unit 8: You learned to control single agent behavior with system instructions. Now you need to coordinate multiple agents that each handle different tasks.
+
+• What This Unit Covers: You will learn the three core Microsoft Agent Framework patterns: Magentic (Manager), Handoff (transfer), and Group Chat (collaboration).
+
+• Why Multi-Agent Matters: One agent cannot be expert at everything. Multiple specialized agents working together outperform one general agent.
+
+Exam Takeaway: Multi-Agent Orchestration is 35% of the exam – the largest domain. Master the three patterns and when to use each.
+
+
+### What Is Microsoft Agent Framework?
+
+Microsoft Agent Framework is the official successor to Semantic Kernel and AutoGen – a unified SDK for building multi-agent systems in Python and C#.
+
+• Framework Definition: The Agent Framework provides pre-built classes for creating agents, defining tools, managing conversations, and orchestrating multi-agent workflows.
+
+• Successor to Semantic Kernel and AutoGen: Microsoft combined the best of both older frameworks into one supported product. Use Agent Framework for all new projects.
+
+• Why Microsoft Built It: Enterprises needed standardized patterns for agent coordination, not custom code for every project. The Framework provides those patterns.
+
+Exam Takeaway: Microsoft Agent Framework is the only orchestration framework covered on the exam. Know it replaces Semantic Kernel and AutoGen.
+
+
+### The Three Core Orchestration Patterns
+
+Microsoft Agent Framework supports three patterns for coordinating multiple agents: Magentic (Manager), Handoff, and Group Chat.
+
+• Magentic (Manager) Pattern: One central manager agent receives user requests and delegates subtasks to specialized sub-agents. The manager controls the flow.
+
+• Handoff Pattern: Agents explicitly transfer conversation control to another agent, passing all context and state. Example: Support agent hands off to Billing agent.
+
+• Group Chat Pattern: Multiple agents share a conversation space. A speaker selection algorithm decides which agent speaks next based on the conversation.
+
+Exam Takeaway: Memorize the three patterns: Magentic (manager delegates), Handoff (transfer control), Group Chat (shared space with speaker selection).
+
+
+### Magentic (Manager) Pattern – Central Coordinator
+
+In the Magentic pattern, one manager agent receives the user's request, decides which specialized sub-agent can help, and delegates the task.
+
+• Manager Responsibilities: The manager agent has system instructions that say "You coordinate specialists. Do not answer user questions directly. Delegate to the correct sub-agent."
+
+• Sub-Agent Specialization: Each sub-agent handles one domain: RefundAgent, TechnicalSupportAgent, AccountAgent. Sub-agents have no awareness of each other.
+
+• Flow Example: User asks "Refund my order." Manager receives request, calls RefundAgent with order details, receives response, returns to user.
+
+Exam Takeaway: Magentic pattern has one manager and multiple unaware sub-agents. The manager decides which sub-agent handles each request.
+
+
+### Handoff Pattern – Transferring Conversation Control
+
+In the Handoff pattern, one agent explicitly transfers the entire conversation to another agent, passing all context, state, and memory.
+
+• Handoff Definition: Handoff means Agent A says "I cannot help with billing. I am transferring you to BillingAgent." Agent A stops. BillingAgent continues with the user.
+
+• State Transfer: When handing off, Agent A passes the conversation history, user information, and any partial work to Agent B. The user sees no interruption.
+
+• Use Case Example: Support agent receives billing question. Support agent hands off to BillingAgent. BillingAgent has access to the full conversation history.
+
+Exam Takeaway: Handoff transfers full state and control. Use Handoff when tasks span agent boundaries but the conversation must continue seamlessly.
+
+
+### # Magentic vs. Handoff – When to Use Each
+
+Choose Magentic when a manager can route requests without transferring conversation history. Choose Handoff when the conversation must continue seamlessly across agents.
+
+• Magentic Use Case: User asks one question per interaction. "What is my refund status?"
+  Manager routes to RefundAgent. User asks separate question next.
+
+• Handoff Use Case: User has a conversation that naturally flows across domains. "My
+  order is late (Support). Also refund shipping (Billing)." Handoff maintains context.
+
+• Pattern Selection Rule: Use Magentic for independent questions. Use Handoff for
+  conversations that cross agent boundaries within the same session.
+
+Exam Takeaway: The exam tests pattern selection. Magentic for independent tasks.
+Handoff for continuous conversations crossing agent boundaries.
+
+
+### # Group Chat Pattern – Collaborative Conversation
+
+In Group Chat pattern, multiple agents participate in a shared conversation space, taking
+turns speaking based on conversation context.
+
+• Shared Space Definition: All agents see every message in the conversation. No single
+  manager controls who speaks. Agents respond when relevant to their expertise.
+
+• Speaker Selection Algorithm: The framework runs an algorithm that evaluates each
+  agent's system instructions and the conversation to decide which agent speaks next.
+
+• Use Case Example: A coding assistant group includes ArchitectAgent (design),
+  CodeAgent (implementation), and TestAgent (quality). They take turns building a
+  solution.
+
+Exam Takeaway: Group Chat is for collaborative problems where multiple viewpoints
+improve the answer. Speaker selection is automatic, not manager-driven.
+
+
+### # Coding Pattern – Creating an Agent in the Framework
+
+In Microsoft Agent Framework, you create an agent by instantiating an Agent class with a
+name, system instruction, and list of tools.
+
+• SDK Pattern: `from agent_framework import Agent`. Create agent with `support_agent
+  = Agent(name="SupportAgent", system_message=support_instructions, tools=
+  [search_tool])`.
+
+• Agent Registration: After creating agents, register them with the Orchestrator:
+  `orchestrator.register_agent(support_agent)`. The orchestrator manages routing.
+
+Exam Takeaway: The coding expectation is creating agents with name, system message,
+and tools. The orchestrator manages agent coordination.
+
+
+### # Orchestrator – The Runtime Coordinator
+
+The Orchestrator is the runtime component that receives user messages, routes them to
+the correct agent, and manages conversation state.
+
+• Orchestrator Responsibilities: The orchestrator holds the list of registered agents,
+  maintains conversation history, runs speaker selection (for Group Chat), and routes
+  messages.
+
+• Starting a Conversation: Call `orchestrator.start_conversation(user_id,
+  initial_message)`. The orchestrator selects the first agent based on the message
+  content.
+
+• Conversation ID: Each conversation gets a unique ID. The orchestrator uses this ID to
+  retrieve conversation history and route subsequent messages to the correct agent
+  chain.
+
+Exam Takeaway: The orchestrator is the runtime coordinator. You register agents with the
+orchestrator, then start conversations. The orchestrator handles routing.
+
+
+### # Writing Orchestration Logic – JSON Payloads
+
+Orchestration code sends and receives JSON payloads between agents, containing
+messages, tool calls, and state information.
+
+• Message JSON Structure: Each message has `role` (user, assistant, tool), `content`
+  (text), and `conversation_id` (unique session identifier).
+
+• Tool Call JSON Structure: When an agent calls a tool, the JSON includes `tool_name`,
+  `parameters` (JSON object), and `tool_call_id` (unique per call).
+
+• Handoff JSON Structure: Handoff payload includes `from_agent`, `to_agent`,
+  `conversation_state` (serialized JSON of memory and context), and `messages`
+  (history).
+
+Exam Takeaway: The coding expectation is constructing and parsing JSON payloads for
+messages, tool calls, and handoffs. Know the required fields.
+
+
+### # Managing API Keys Per Agent
+
+Each agent may need different API keys and endpoints for its tools. Your orchestration
+code must manage keys per agent, not globally.
+
+• Per-Agent Configuration: Create a configuration dictionary mapping agent names to
+  their endpoint URLs and API keys: `agent_config["SupportAgent"] = {"endpoint": "...",
+  "api_key": "..."}`.
+
+• Injecting Keys at Tool Call: When an agent calls a tool, your orchestration code looks
+  up the agent's configuration and injects the correct API key into the tool request.
+
+• Key Rotation Per Agent: When one agent's key rotates, other agents are unaffected.
+  Update only that agent's configuration entry.
+
+Exam Takeaway: Manage API keys per agent, not globally. The exam tests configuration
+structures that map agent names to their credentials.
+
+
+### # State Transfer in Handoff Pattern
+
+During handoff, the handing-off agent serializes its memory and context into JSON and
+passes it to the receiving agent.
+
+• What Gets Transferred: Conversation history (all messages), short-term memory
+  (session variables), long-term memory (user preferences), and any pending tool
+  results.
+
+• Serialization Format: Convert memory objects to JSON using `json.dumps()`. The
+  receiving agent parses with `json.loads()` and restores its state.
+
+• Handoff Tool Definition: The framework provides a `handoff_to_agent` tool. When
+  called, the orchestrator automatically transfers state and routes the next message.
+
+Exam Takeaway: Handoff transfers full agent state via JSON serialization. The exam tests
+understanding of what state transfers and how serialization works.
+
+
+### # Sequential vs. Concurrent Agent Execution
+
+Sequential execution runs agents one after another. Concurrent execution runs multiple
+agents simultaneously for independent subtasks.
+
+• Sequential Definition: Agent A completes its work, returns result. Then Agent B starts
+  with Agent A's output as input. Use for dependent tasks.
+
+• Concurrent Definition: Agent A and Agent B run at the same time. The orchestrator
+  waits for both to complete, then combines results. Use for independent tasks.
+
+• Coding Sequential: Call `agent_a.process()`, then `agent_b.process(agent_a.result)`.
+  Simple linear flow.
+
+• Coding Concurrent: Use `asyncio.gather(agent_a.process_async(),
+  agent_b.process_async())`. Both run simultaneously.
+
+Exam Takeaway: Sequential for dependencies. Concurrent for independent tasks. The
+exam tests matching execution pattern to task dependencies.
+
+
+### # Error Handling in Multi-Agent Orchestration
+
+When one agent fails, your orchestration code must decide whether to retry, escalate to
+another agent, or fail the entire conversation.
+
+• Retry Strategy: If a tool call fails (network error, timeout), retry up to 3 times with
+  exponential backoff (wait 1s, 2s, 4s between retries).
+
+• Escalation Strategy: If an agent fails because it lacks capability, hand off to a more
+  capable agent. Example: "RefundAgent cannot process international orders" → handoff
+  to EscalationAgent.
+
+• Fallback Response: If all agents fail, return a default response: "I cannot complete your
+  request. A human has been notified." Log the error to Foundry Trace.
+
+Exam Takeaway: The exam tests error handling strategies – retry, escalate, or fallback.
+Know when to use each based on error type.
+
+
+### # Monitoring Multi-Agent with Foundry Trace
+
+Foundry Trace records every message, tool call, and handoff across all agents, showing
+you the complete multi-agent decision chain.
+
+• Trace Span per Agent: Each agent action creates a span (a logged operation) with
+  agent name, operation type (message, tool call, handoff), and duration.
+
+• Visualizing Handoffs: Foundry Trace shows handoffs as connecting lines between
+  agent spans. You can see exactly which agent transferred to which agent and why.
+
+• Debugging Reasoning Loops: If agents hand off back and forth without progress,
+  Foundry Trace shows the cycle. Identify which agent made the wrong handoff decision.
+
+Exam Takeaway: Foundry Trace is critical for debugging multi-agent failures. The exam
+tests reading traces to identify handoff loops and misrouting.
+
+
+### # Unit 9 Summary – Multi-Agent Patterns
+
+You have learned the three Microsoft Agent Framework patterns, how to create agents
+with the SDK, and how to orchestrate them with JSON payloads.
+
+• Three Patterns: Magentic (manager delegates to unaware sub-agents), Handoff (state
+  transfer between agents), Group Chat (collaborative with speaker selection).
+
+• Coding Skills: Create agents with name, system message, and tools. Register with
+  orchestrator. Manage API keys per agent. Serialize state for handoff.
+
+• Execution Patterns: Sequential for dependent tasks. Concurrent for independent tasks.
+  Use Foundry Trace to debug handoff loops.
+
+• Next Unit Preview: Unit 10 introduces Tool Calling – constructing REST API tools,
+  handling JSON responses, and managing tool authentication.
+
+Exam Takeaway: Multi-Agent Orchestration is 35% of the exam. Master pattern selection,
+JSON payload construction, per-agent key management, and Foundry Trace debugging.
+
+
+
+
+
