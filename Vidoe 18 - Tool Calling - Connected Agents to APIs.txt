@@ -1,0 +1,314 @@
+### # Unit 10 Introduction – What Is a Tool?
+
+Unit 9 covered multi-agent patterns. Unit 10 covers tools – the external APIs and functions
+that agents call to take actions.
+
+• Review of Unit 9: You learned to coordinate multiple agents. Now you need to give each
+  agent the ability to call external services like databases, APIs, and email.
+
+• Tool Definition: A tool is any external capability an agent can use – a search API, a
+  database query, an email sender, a calculation function, or a payment processor.
+
+• Why Tools Matter: Without tools, agents can only talk. With tools, agents can take real
+  actions in the world – send emails, update databases, or process payments.
+
+Exam Takeaway: Tool calling is part of Multi-Agent Orchestration domain (35% weighting).
+Tools turn LLM text outputs into real-world actions.
+
+
+### # How Tool Calling Works – The Three-Step Flow
+
+Tool calling has three steps: agent requests a tool, your code executes it, and the agent
+receives the result to continue reasoning.
+
+• Step 1 – Agent Requests: The LLM outputs a JSON structure like `{"tool": "send_email",
+  "parameters": {"to": "user@example.com", "body": "..."}}`.
+
+• Step 2 – Code Executes: Your orchestration code parses the JSON, looks up the tool
+  function, and executes it with the provided parameters.
+
+• Step 3 – Result Returns: Your code sends the tool's result back to the LLM as a new
+  message. The LLM continues reasoning based on the result.
+
+Exam Takeaway: The agent requests tools via JSON. Your code executes them. The agent
+receives results. This three-step flow is tested on the exam.
+
+
+### # Tool Definition – Telling the Agent What Tools Exist
+
+A tool definition is a JSON schema that describes the tool's name, purpose, and required
+parameters so the agent knows how to call it.
+
+• Tool Definition Structure: Each tool has `name` (unique identifier), `description` (what
+  it does), and `parameters` (JSON schema of required inputs).
+
+• Example Tool Definition: `{"name": "get_weather", "description": "Get current weather for
+  a city", "parameters": {"city": {"type": "string"}}}`.
+
+• Including Tools in Requests: When you call the LLM, you pass an array of tool
+  definitions in the `tools` parameter. The LLM chooses which tool to call.
+
+Exam Takeaway: Tool definitions are JSON schemas. The exam tests constructing correct
+tool definitions with name, description, and parameters.
+
+
+### # REST API Tool – Calling External HTTP Endpoints
+
+A REST API tool calls an external HTTP endpoint (URL) with methods like GET (retrieve data)
+or POST (send data) to perform actions.
+
+• REST Tool Definition: The tool definition includes the HTTP method (GET, POST), URL
+  endpoint, headers (like API keys), and expected response format.
+
+• Example REST Call: Tool `send_slack_message` makes a POST request to
+  `https://slack.com/api/chat.postMessage` with a JSON body containing the message.
+
+• Authentication: Most REST tools require an API key in the `Authorization` header. Your
+  code injects the key from configuration when executing the tool.
+
+Exam Takeaway: REST API tools call external HTTP endpoints. The exam tests constructing
+the request URL, headers, body, and handling the JSON response.
+
+
+### # Coding Pattern – Constructing a REST API Tool Call
+
+Your orchestration code constructs an HTTP request using the parameters from the
+agent's tool call, then sends it using the requests library.
+
+• Build the Request: Extract `url`, `method`, `headers`, and `body` from the tool call
+  parameters. Set `headers["Authorization"] = f"Bearer {api_key}"`.
+
+• Send the Request: Use `requests.post(url, headers=headers, json=body)` for POST or
+  `requests.get(url, headers=headers, params=body)` for GET.
+
+• Handle Response: Check `response.status_code`. If 200 (success), parse
+  `response.json()`. If error (4xx, 5xx), return error message to agent.
+
+Exam Takeaway: The coding expectation is constructing REST requests with headers,
+sending them, and handling JSON responses and error codes.
+
+
+### # Managing API Keys for Tools
+
+Each tool may require its own API key. Your orchestration code must retrieve the correct
+key from configuration per tool call.
+
+• Per-Tool Key Storage: Create a dictionary mapping tool names to their API keys:
+  `tool_keys = {"slack": "xoxb-123", "weather": "abc-456", "database": "key-789"}`.
+
+• Key Injection at Runtime: When executing a tool, look up its key: `api_key =
+  tool_keys.get(tool_name)`. Add to headers before sending the request.
+
+• Key Rotation: Update keys in configuration (environment variables or Key Vault). Your
+  code reads current values at startup or dynamically on each call.
+
+Exam Takeaway: Manage API keys per tool, not per agent. The exam tests configuration
+structures that map tool names to their credentials.
+
+
+### # Tool Response – Returning Results to the Agent
+
+After executing a tool, your code sends the result back to the LLM as a new message with
+role `tool`, so the agent can continue reasoning.
+
+• Result Message Structure: `{"role": "tool", "tool_call_id": "call_123", "content": "The
+  weather in Seattle is 65°F and sunny."}`.
+
+• Tool Call ID Matching: The agent's original tool call has a `tool_call_id`. Your result
+  message must include the same ID so the LLM knows which call this result belongs to.
+
+• Error Handling: If the tool fails, return an error message: `{"role": "tool", "tool_call_id":
+  "call_123", "content": "Error: API key invalid"}`.
+
+Exam Takeaway: Tool responses go in role `tool` with matching `tool_call_id`. The exam
+tests constructing correct tool response messages.
+
+
+### # Parsing Tool Calls from LLM Responses
+
+When an LLM wants to call a tool, its response includes a `tool_calls` array. Your code
+must parse this array to extract the tool name and parameters.
+
+• Response Structure: `response["choices"][0]["message"]["tool_calls"]` is an array. Each
+  element has `function.name` and `function.arguments` (JSON string).
+
+• Extracting Parameters: Parse `arguments` string with `json.loads()` to get a Python
+  dictionary of parameter names and values.
+
+• Handling Multiple Calls: An agent can request multiple tools in one response. Loop
+  through `tool_calls` array and execute each sequentially or concurrently.
+
+Exam Takeaway: Parse `tool_calls` array from LLM response. Extract `name` and
+`arguments` (parse as JSON). The exam tests this parsing logic.
+
+
+### # Tool Choice – Forcing or Allowing Tool Use
+
+You can control whether the agent must use a tool (forced), can choose to use one
+(auto), or cannot use any (none) via the `tool_choice` parameter.
+
+• `tool_choice`: "auto" (default): The agent decides whether to call a tool. Use when the
+  agent should have autonomy.
+
+• `tool_choice`: "required": The agent must call one of the provided tools. Use when the
+  user's request always requires an action.
+
+• `tool_choice`: {"type": "function", "function": {"name": "get_weather"}}: Forces the agent
+  to call a specific tool. Use for deterministic workflows.
+
+Exam Takeaway: `tool_choice` controls agent autonomy. Auto (default), required (must
+call any tool), or specific tool name (force exact tool). The exam tests these options.
+
+
+### # Parallel Tool Calls – Executing Multiple Tools at Once
+
+Agents can request multiple tools in one response. Your orchestration code can execute
+them in parallel to reduce total response time.
+
+• Parallel Execution: Use `asyncio.gather()` to execute multiple tool calls simultaneously.
+  Results arrive in any order.
+
+• When to Use Parallel: Execute tools in parallel when they are independent (no data
+  dependency). Example: get weather for three cities simultaneously.
+
+• Sequential Fallback: If tools have dependencies (Tool B needs Tool A's result), execute
+  sequentially. The agent's second tool call can reference the first result.
+
+Exam Takeaway: Parallel tool calls reduce latency. The exam tests when to use parallel
+(independent tools) vs. sequential (dependent tools).
+
+
+### # Idempotent Tools – Handling Duplicate Calls
+
+An idempotent tool produces the same result if called multiple times with the same
+parameters. Critical for tools that change data.
+
+• Non-Idempotent Example: "Send email" – calling twice sends two emails. Not
+  idempotent. Dangerous if retried.
+
+• Idempotent Example: "Set temperature to 72°F" – calling twice has same effect. Safe to
+  retry.
+
+• Implementing Idempotency: Include a `request_id` parameter. The tool checks if it
+  already processed that `request_id` and returns cached result without repeating the
+  action.
+
+Exam Takeaway: Idempotent tools prevent duplicate actions. The exam tests recognizing
+which tools need idempotency (emails, payments, updates) vs. which are safe (read-only
+queries).
+
+
+### # Tool Timeouts and Retries
+
+Tool calls can hang (never return) or take too long. Your code must set timeouts and
+implement retry logic for transient failures.
+
+• Setting Timeouts: Use `requests.get(url, timeout=10)` – fails after 10 seconds. Choose
+  timeout based on expected tool latency (fast tools 5s, slow tools 30s).
+
+• Retry Strategy: For network errors (timeout, connection refused), retry up to 3 times
+  with exponential backoff (1s, 2s, 4s between retries).
+
+• Circuit Breaker: If a tool fails 5 times in 1 minute, stop calling it for 30 seconds.
+  Prevents cascading failures when a downstream service is down.
+
+Exam Takeaway: Timeouts prevent hanging. Retries handle transient failures. Circuit
+breakers prevent overload. The exam tests these error handling patterns.
+
+
+### # Tool Timeouts and Retries
+
+Tool calls can hang (never return) or take too long. Your code must set timeouts and
+implement retry logic for transient failures.
+
+• Setting Timeouts: Use `requests.get(url, timeout=10)` – fails after 10 seconds. Choose
+  timeout based on expected tool latency (fast tools 5s, slow tools 30s).
+
+• Retry Strategy: For network errors (timeout, connection refused), retry up to 3 times
+  with exponential backoff (1s, 2s, 4s between retries).
+
+• Circuit Breaker: If a tool fails 5 times in 1 minute, stop calling it for 30 seconds.
+  Prevents cascading failures when a downstream service is down.
+
+Exam Takeaway: Timeouts prevent hanging. Retries handle transient failures. Circuit
+breakers prevent overload. The exam tests these error handling patterns.
+
+
+### # Tool Call History – Maintaining Context
+
+Your agent must remember previous tool calls and their results to avoid repeating the
+same call and to reference past results.
+
+• Storing in Conversation History: Every tool call (request) and tool response (result) is
+  stored in the conversation messages array as separate entries.
+
+• Preventing Repeated Calls: Before calling a tool, check if the same tool with same
+  parameters was called in the last 10 messages. If yes, reuse cached result.
+
+• Referencing Past Results: The agent's system instruction can say "Remember past tool
+  results. If asked again, answer from memory without recalling the tool."
+
+Exam Takeaway: Tool call history prevents redundant calls and enables referencing past
+results. The exam tests storing tool calls in conversation state.
+
+
+### # Logging Tool Calls with Foundry Trace
+
+Foundry Trace records every tool call – name, parameters, result, duration – allowing you
+to debug tool failures and measure performance.
+
+• Trace Span per Tool Call: Create a span (logged operation) for each tool call. Add
+  attributes: `tool_name`, `parameters_json`, `status_code`, `duration_ms`.
+
+• Recording Results: Add `tool_result` attribute to the span. If error, add `error_type` and
+  `error_message` attributes.
+
+• Debugging Failures: In Foundry Trace, filter spans by `error_type` to find all failed tool
+  calls. Examine parameters to see what caused the failure.
+
+Exam Takeaway: The coding expectation is instrumenting tool calls with OpenTelemetry
+traces. Record tool name, parameters, result, and errors.
+
+
+### # Security – Validating Tool Parameters
+
+Never trust parameters that come from an LLM. Validate all tool inputs to prevent injection
+attacks and malformed requests.
+
+• Parameter Validation: Check that `email_address` matches regex `\S+@\S+\.\S+`.
+  Check that `amount` is a positive number within allowed range.
+
+• SQL Injection Prevention: If tool queries a database, use parameterized queries, not
+  string concatenation: `cursor.execute("SELECT * FROM users WHERE id = ?", (user_id,))`.
+
+• URL Injection: If tool calls a URL from a parameter, validate it belongs to an allowed
+  domain list. Block URLs that try to call internal services.
+
+Exam Takeaway: Validate all tool parameters. Never trust LLM-generated input. The exam
+tests parameter validation rules for different tool types.
+
+
+### # Unit 10 Summary – Tool Calling Mastery
+
+You have learned to define tools, parse agent tool requests, execute REST API calls, handle
+responses, and validate parameters securely.
+
+• Three-Step Flow: Agent requests (JSON) → Code executes (REST/function) → Result
+  returns (tool message). The exam tests this flow.
+
+• Tool Definitions: JSON schema with name, description, parameters. Pass in `tools` array
+  when calling LLM.
+
+• Coding Skills: Parse `tool_calls` array, extract name and arguments, execute REST calls
+  with headers, construct tool result messages, validate parameters.
+
+• Observability: Instrument tool calls with OpenTelemetry spans. Log name, parameters,
+  result, and errors to Foundry Trace.
+
+• Next Unit Preview: Unit 11 introduces Model Context Protocol (MCP) – the standardized
+  way to connect agents to tools without custom code.
+
+Exam Takeaway: Tool calling is 35% of the exam. Master JSON parsing, REST call
+construction, API key management, error handling, and parameter validation.
+
+
