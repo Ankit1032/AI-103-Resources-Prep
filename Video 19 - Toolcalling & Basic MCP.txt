@@ -1,0 +1,18 @@
+1. Tools like web search, code intepreter are present by default in tools section.
+
+2. You can Add tools as well.
+
+3. In LLM response, if it used any tool, it will show under the response. and you can see Traces as well.
+
+4. in code interpreter, you can add your .py file for it to run. then you can ask the agent in chat to run the python script.
+
+5. to setup a language tool, --> go to azure portal --> search "language"  -> create a resource (name = "language345) --> it has some free tier limit.
+	a. This language serviec offers PII detection, sentiment analysis, text analytics, entity detection, etc.
+	
+6. go to resource in azure portal for language345 -> click on "manage keys" --> copy the key --> go to foundry --> add "Azure language in foundry tools" --> configure it and paste the api key.
+
+7. you can test the tool by saying in chat "What is the sentiment of this message : I hate toys". The agent will call the language tool and show the sentiment in response and will mention that it called language tool.
+
+8. you can also add MCP in the tools (Ex. tomtommaps).
+
+9. Sometimes when u add a run and ask the chat for a response, the tool will wait until you approve it in the response section itself. same happens in copilot studio.
